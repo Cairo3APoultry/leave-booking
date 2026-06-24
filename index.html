@@ -23,7 +23,7 @@
 
   // ─── الإعدادات: عدّل السطرين دول ───────────────────────────────────
   var SUPABASE_URL = 'https://qswakmnhxcstcyyycvom.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzd2FrbW5oeGNzdGN5eXljdm9tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDk0MTE0MywiZXhwIjoyMDk2NTE3MTQzfQ.BgWxFWzusidlmyhluaOqWv9voCoBdwSHrfoQ--Q59Fw';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzd2FrbW5oeGNzdGN5eXljdm9tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NDExNDMsImV4cCI6MjA5NjUxNzE0M30.tNZzdy0J_i8vngm517ud7ul2HNGa8dzkkV7iZv8qhSk'; // anon / public key فقط — ليس service_role
   // ──────────────────────────────────────────────────────────────────
 
   // ════════════════ طبقة الاتصال بـ Supabase REST (async) ════════════
@@ -852,14 +852,13 @@ var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
   // ════════════════ جسر google.script.run ════════════════════════════
   function makeRunner() {
     var onSuccess = null, onFailure = null;
-    var builder = {
-      withSuccessHandler: function (f) { onSuccess = f; return builder; },
-      withFailureHandler: function (f) { onFailure = f; return builder; }
-    };
-    return new Proxy(builder, {
+    var proxy = new Proxy({}, {
       get: function (target, prop) {
-        if (prop in target) return target[prop];
-        if (typeof prop !== 'string') return undefined;
+        // chain methods must return the SAME proxy so the chain continues
+        if (prop === 'withSuccessHandler') { return function (f) { onSuccess = f; return proxy; }; }
+        if (prop === 'withFailureHandler') { return function (f) { onFailure = f; return proxy; }; }
+        if (typeof prop !== 'string' || prop === 'then') return undefined;
+        // any other property name = a server function to invoke
         return function () {
           var args = Array.prototype.slice.call(arguments);
           Promise.resolve()
@@ -876,6 +875,7 @@ var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
         };
       }
     });
+    return proxy;
   }
 
   window.google = window.google || {};
