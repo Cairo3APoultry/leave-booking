@@ -1287,7 +1287,7 @@ function _newChart(id,cfg){_destroyChart(id);var el=document.getElementById(id);
 var PAGE_PERMS = [
   {sec:'الرئيسية'},
   {id:'dashboard',    lbl:'لوحة التحكم',            actions:[]},
-  {id:'requests',     lbl:'طلبات الحجز',            actions:['add','edit','delete','approve']},
+  {id:'requests',     lbl:'طلبات الحجز',            actions:['add','edit','delete','approve','bulkbook','import']},
   {id:'trips',        lbl:'إدارة الرحلات',          actions:['add','edit','delete']},
   {sec:'البيانات'},
   {id:'employees',    lbl:'الموظفون',              actions:['add','edit','delete','import']},
@@ -1309,7 +1309,7 @@ var PAGE_PERMS = [
   {id:'settings',     lbl:'إعدادات النظام',         actions:['edit']},
   {id:'initdb',       lbl:'تهيئة قاعدة البيانات',   actions:['edit']}
 ];
-var ACTION_LABELS={add:'إضافة',edit:'تعديل',delete:'حذف',approve:'قبول/رفض',import:'استيراد',reply:'الرد على التقييمات'};
+var ACTION_LABELS={add:'إضافة',edit:'تعديل',delete:'حذف',approve:'قبول/رفض',import:'استيراد',bulkbook:'حجز مجمّع',reply:'الرد على التقييمات'};
 
 function isFullAdmin(){ return S.user && (S.user.role==='admin'||S.user.role==='developer'); }
 function canView(page){
@@ -2201,7 +2201,7 @@ function renderEmpForm(){var c=document.getElementById('emp-cc');if(!c)return;if
 var code=S.user?S.user.empCode||'':'';var today=tod();var activeBk=S.bookings.find(function(b){return String(b.empCode)===String(code)&&b.status==='approved'&&b.returnDate>=today;});var activeHtml='';
 if(activeBk){var aRt=gRt(activeBk.routeId);var aRetRt=activeBk.returnRouteId&&activeBk.returnRouteId!==activeBk.routeId?gRt(activeBk.returnRouteId):{};activeHtml='<div style="margin-bottom:16px"><div class="al al-g" style="margin-bottom:10px">✅ لديك إجازة سارية حالياً</div><div style="background:var(--bg);border:1.5px solid var(--bdr);border-radius:12px;padding:13px">'+[['رقم الحجز','<span style="font-family:monospace;color:var(--R);font-weight:800">'+activeBk.ref+'</span>'],['خط النزول',aRt.name||''],['خط العودة',aRetRt.name?'<span class="badge b-rt-change">↩ '+aRetRt.name+'</span>':aRt.name||''],['تاريخ النزول',fmt(activeBk.departDate)],['تاريخ العودة',fmt(activeBk.returnDate)],['مدة الغياب',dys(activeBk.departDate,activeBk.returnDate)+' يوم']].map(function(r){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bdr2);font-size:12.5px"><span style="color:var(--txt3);font-weight:600">'+r[0]+'</span><b>'+r[1]+'</b></div>';}).join('')+'<div style="margin-top:12px"><button class="btn btn-am btn-sm" onclick="showExtendMod('+activeBk.id+',\''+activeBk.returnDate+'\')">📅 مد مدة الإجازة</button></div></div></div>';}
 if(S._bookingClosed){c.innerHTML=activeHtml+'<div class="al al-r">🔒 نظام تسجيل الطلبات مغلق حالياً<br>وقت القبول: '+S._bookingFrom+' حتى '+S._bookingTo+'</div><div style="font-size:12.5px;color:var(--txt2);text-align:center;padding:20px">'+S._bookingMsg+'</div>';return;}
-c.innerHTML=activeHtml+'<div class="slbl">بيانات الموظف</div><div style="display:flex;gap:8px;margin-bottom:12px"><div class="fg" style="flex:1"><label>كود الموظف</label><input id="ec" value="'+code+'" placeholder="أدخل الكود" style="font-family:monospace;font-weight:800;font-size:15px;letter-spacing:2px" onkeydown="if(event.key===\'Enter\')lookupEmp()"/></div><div style="display:flex;align-items:flex-end"><button class="btn btn-r" style="padding:10px 16px" onclick="lookupEmp()">🔍 بحث</button></div></div><div id="emp-err" style="display:none" class="al al-r"></div><div id="emp-info" style="display:none"></div>';if(code)setTimeout(lookupEmp,200);}
+c.innerHTML=activeHtml+'<button class="btn btn-pu btn-full" style="margin-bottom:14px" onclick="showEmpBulkBookMod()">👥 حجز جماعي (لموظفي قطاعك)</button><div class="slbl">بيانات الموظف</div><div style="display:flex;gap:8px;margin-bottom:12px"><div class="fg" style="flex:1"><label>كود الموظف</label><input id="ec" value="'+code+'" placeholder="أدخل الكود" style="font-family:monospace;font-weight:800;font-size:15px;letter-spacing:2px" onkeydown="if(event.key===\'Enter\')lookupEmp()"/></div><div style="display:flex;align-items:flex-end"><button class="btn btn-r" style="padding:10px 16px" onclick="lookupEmp()">🔍 بحث</button></div></div><div id="emp-err" style="display:none" class="al al-r"></div><div id="emp-info" style="display:none"></div>';if(code)setTimeout(lookupEmp,200);}
 function lookupEmp(){var rawInput=(document.getElementById('ec').value||'').trim();var em=S.employees.find(function(e){return String(e.code)===rawInput;});if(!em)em=S.employees.find(function(e){return String(e.code)===rawInput.toUpperCase();});if(!em)em=S.employees.find(function(e){return String(e.code).toLowerCase()===rawInput.toLowerCase();});var errEl=document.getElementById('emp-err'),infoEl=document.getElementById('emp-info');if(!em||!em.code){errEl.innerHTML='⚠ الكود غير موجود في قاعدة البيانات';errEl.style.display='flex';infoEl.style.display='none';return;}errEl.style.display='none';var code=em.code;var sec=gSec(em.sectorId);var canChoose=!!em.canChooseSector;var secSelOpts='<option value="0">— قطاعه الأساسي ('+(sec.name||'')+') —</option>'+S.sectors.map(function(s){return'<option value="'+s.id+'">'+s.ico+' '+s.name+'</option>';}).join('');var rtSelOpts='<option value="">— نفس خط النزول —</option>'+S.routes.map(function(r){return'<option value="'+r.id+'">'+r.name+'</option>';}).join('');var extraFields=canChoose?'<div class="fg"><label>📤 قطاع تكلفة النزول</label><select id="ecsdep" onchange="chkValid()">'+secSelOpts+'</select></div><div class="fg full" style="border-top:1px solid var(--bdr);padding-top:11px;margin-top:2px"><div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;margin-bottom:2px">↩ بيانات العودة (اختياري)</div></div><div class="fg"><label>خط العودة</label><select id="ecrt" onchange="chkValid()">'+rtSelOpts+'</select></div><div class="fg"><label>📥 قطاع تكلفة العودة</label><select id="ecsret" onchange="chkValid()">'+secSelOpts+'</select></div>':'';infoEl.innerHTML='<div class="info-grid"><div class="ir"><div class="il">الاسم</div><div class="iv">'+em.name+'</div></div><div class="ir"><div class="il">الوظيفة</div><div class="iv">'+em.job+'</div></div><div class="ir"><div class="il">القطاع</div><div class="iv"><span class="badge" style="background:'+sec.bg+';color:'+sec.color+'">'+sec.ico+' '+sec.name+'</span></div></div><div class="ir"><div class="il">القسم</div><div class="iv">'+em.dept+'</div></div></div><div class="divider"></div><div class="slbl">تفاصيل طلب الإجازة</div>'+(canChoose?'<div class="al al-pu" style="margin-bottom:10px">⭐ لديك صلاحية اختيار خط وقطاع منفصل لكل اتجاه</div>':'')+'<div class="fgrid"><div class="fg"><label>تاريخ النزول</label><input type="date" id="ed" min="'+tod()+'" onchange="clearRet();chkValid()"/></div><div class="fg"><label>تاريخ العودة</label><input type="date" id="er" onchange="chkValid()"/></div><div class="fg full"><label>خط '+(canChoose?'النزول':'السير')+'</label><select id="ert" onchange="chkValid()"><option value="">— اختر خط السير —</option>'+S.routes.map(function(r){return'<option value="'+r.id+'">'+r.name+'</option>';}).join('')+'</select></div>'+extraFields+'</div><div id="esm" style="display:none" class="al al-g"></div><input type="hidden" id="emp-resolved-code" value="'+code+'"/><button class="btn btn-r btn-full" id="esb" disabled onclick="submitEmpBk()">أكمل البيانات المطلوبة</button>';infoEl.style.display='';}
 function clearRet(){var r=document.getElementById('er'),d=document.getElementById('ed');if(r&&d){r.min=d.value;r.value='';}}
 function chkValid(){var d=(document.getElementById('ed')||{}).value,r=(document.getElementById('er')||{}).value,rt=(document.getElementById('ert')||{}).value;var ok=d&&r&&rt&&new Date(r+'T00:00:00')>=new Date(d+'T00:00:00');var btn=document.getElementById('esb');if(btn){btn.disabled=!ok;btn.textContent=ok?'✅ تقديم طلب الإجازة':'أكمل البيانات المطلوبة';}var sm=document.getElementById('esm');if(sm&&ok){var retRtEl=document.getElementById('ecrt');var retRtId=retRtEl?(+retRtEl.value||0):0;var retTxt=(retRtId&&retRtId!==(+rt))?(' · ↩ عودة: <b>'+gRt(retRtId).name+'</b>'):'';sm.innerHTML='📍 '+gRt(+rt).name+retTxt+' · مدة الغياب: <b>'+dys(d,r)+' يوم</b>';sm.style.display='flex';}else if(sm)sm.style.display='none';}
@@ -2521,7 +2521,7 @@ function bindBudgetDash(){var secF=(document.getElementById('bdsh-sec')||{}).val
 </script>
 <script>
 // ══ REQUESTS PAGE ═══════════════════════════════════════════════════
-function rReqs(){return'<div class="card"><div class="ch"><div><div class="ct">📋 طلبات الحجز</div></div><div class="srow"><div class="sbox">🔍 <input id="rs" placeholder="بحث..." oninput="fReqs()" style="width:160px"/></div><select class="flt" id="rsec" onchange="fReqs()"><option value="">كل القطاعات</option>'+S.sectors.map(function(s){return'<option value="'+s.id+'">'+s.ico+' '+s.name+'</option>';}).join('')+'</select><div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:9.5px;font-weight:700;color:var(--txt3);text-transform:uppercase">فلترة بيوم النزول</label><input type="date" id="r-date-filter" onchange="fReqs()" style="background:var(--bg);border:1.5px solid var(--bdr);border-radius:9px;padding:6px 10px;font-size:12px;color:var(--txt);outline:none;font-family:inherit;direction:ltr"/></div><button class="btn btn-g btn-sm" onclick="clearDateFilter()" title="إلغاء فلتر التاريخ">✕ إلغاء</button>'+pBtn('requests','add','<button class="btn btn-r btn-sm" onclick="showAdminBookMod()">➕ حجز جديد</button>')+'<button class="btn btn-xl btn-sm" onclick="xlsxDL(\'bookings\')">📥 Excel</button><button class="btn btn-r btn-sm" onclick="rfsh(function(){renderPage(\'requests\');})">🔄 تحديث</button></div></div><div style="padding:9px 14px;border-bottom:1px solid var(--bdr);background:#fafbfc;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div class="tabs-r" id="rtabs"><button class="tab-b active" onclick="sRT(this,\'all\')">الكل</button><button class="tab-b" onclick="sRT(this,\'pending\')">معلقة</button><button class="tab-b" onclick="sRT(this,\'approved\')">مقبولة</button><button class="tab-b" onclick="sRT(this,\'rejected\')">مرفوضة</button></div><button class="btn btn-ok btn-sm" id="bulk-approve-btn" onclick="bulkApproveDay()" style="display:none">✅ قبول جميع المعلقة</button></div><div id="req-summary" style="display:none;padding:9px 17px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;font-size:12px;color:var(--green);font-weight:700"></div><div class="tbl" id="rtbl"></div></div>';}
+function rReqs(){return'<div class="card"><div class="ch"><div><div class="ct">📋 طلبات الحجز</div></div><div class="srow"><div class="sbox">🔍 <input id="rs" placeholder="بحث..." oninput="fReqs()" style="width:160px"/></div><select class="flt" id="rsec" onchange="fReqs()"><option value="">كل القطاعات</option>'+S.sectors.map(function(s){return'<option value="'+s.id+'">'+s.ico+' '+s.name+'</option>';}).join('')+'</select><div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:9.5px;font-weight:700;color:var(--txt3);text-transform:uppercase">فلترة بيوم النزول</label><input type="date" id="r-date-filter" onchange="fReqs()" style="background:var(--bg);border:1.5px solid var(--bdr);border-radius:9px;padding:6px 10px;font-size:12px;color:var(--txt);outline:none;font-family:inherit;direction:ltr"/></div><button class="btn btn-g btn-sm" onclick="clearDateFilter()" title="إلغاء فلتر التاريخ">✕ إلغاء</button>'+pBtn('requests','add','<button class="btn btn-r btn-sm" onclick="showAdminBookMod()">➕ حجز جديد</button>')+pBtn('requests','bulkbook','<button class="btn btn-pu btn-sm" onclick="showBulkBookMod()">👥 حجز مجمّع</button>')+pBtn('requests','import','<button class="btn btn-am btn-sm" onclick="showImportMod()">📤 استيراد إكسيل</button>')+'<button class="btn btn-xl btn-sm" onclick="xlsxDL(\'bookings\')">📥 Excel</button><button class="btn btn-r btn-sm" onclick="rfsh(function(){renderPage(\'requests\');})">🔄 تحديث</button></div></div><div style="padding:9px 14px;border-bottom:1px solid var(--bdr);background:#fafbfc;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div class="tabs-r" id="rtabs"><button class="tab-b active" onclick="sRT(this,\'all\')">الكل</button><button class="tab-b" onclick="sRT(this,\'pending\')">معلقة</button><button class="tab-b" onclick="sRT(this,\'approved\')">مقبولة</button><button class="tab-b" onclick="sRT(this,\'rejected\')">مرفوضة</button></div><button class="btn btn-ok btn-sm" id="bulk-approve-btn" onclick="bulkApproveDay()" style="display:none">✅ قبول جميع المعلقة</button></div><div id="req-summary" style="display:none;padding:9px 17px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;font-size:12px;color:var(--green);font-weight:700"></div><div class="tbl" id="rtbl"></div></div>';}
 
 var _rt='all';
 function sRT(b,t){_rt=t;document.querySelectorAll('#rtabs .tab-b').forEach(function(x){x.classList.remove('active');});b.classList.add('active');fReqs();}
@@ -2575,6 +2575,366 @@ function filterAdminEmp() {
   sel.innerHTML = opts;
 }
 function saveAdminBook(){if(!canDo('requests','add')){showToast('🔒 لا تملك الصلاحية','error');return;}var empCode=(document.getElementById('ab-emp').value||'').trim(),rtId=+(document.getElementById('ab-rt').value||0),dep=document.getElementById('ab-dep').value,ret=document.getElementById('ab-ret').value;if(!empCode||!rtId||!dep||!ret){showToast('يرجى ملء جميع الحقول','error');return;}if(new Date(ret+'T00:00:00')<new Date(dep+'T00:00:00')){showToast('تاريخ العودة يجب أن يكون بعد النزول','error');return;}var overlap=S.bookings.find(function(b){if(b.empCode!==empCode||b.status==='rejected')return false;return!(ret<b.departDate||dep>b.returnDate);});if(overlap){showToast('يوجد حجز متداخل للموظف في هذه الفترة','error');return;}call('addBooking',[{empCode:empCode,routeId:rtId,departDate:dep,returnDate:ret,submittedBy:S.user?S.user.username:'admin'}],function(r){if(r.success){showToast('✅ تم الحجز — '+r.ref,'success');closeModal();rfsh(function(){renderPage('requests');});}else showToast('خطأ: '+r.message,'error');});}
+// ════════════════════════════════════════════════════════════════════
+//  CAIRO 3A — BULK BOOKING + EXCEL IMPORT + GROUPED TICKETS
+// ════════════════════════════════════════════════════════════════════
+var _bulkRows=[];            // [{empCode,routeId,departDate,returnDate}]
+var _bulkReady=[];           // snapshot of valid rows at confirm time
+var _bulkSectorLock=null;    // null = all sectors (admin) | sectorId = employee mode
+var _bulkShowCost=true;      // show batch cost-sector section
+var _batchContext='admin';   // 'admin' | 'emp' — controls post-finish refresh
+var _importRows=[];
+var _importReady=[];
+
+// ── small helpers ───────────────────────────────────────────────────
+function _pad2(x){x=String(x);return x.length<2?'0'+x:x;}
+function _normDate(v){
+  if(v instanceof Date && !isNaN(v.getTime()))return v.getFullYear()+'-'+_pad2(v.getMonth()+1)+'-'+_pad2(v.getDate());
+  var s=String(v||'').trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  var m=s.match(/^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})$/);if(m)return m[1]+'-'+_pad2(m[2])+'-'+_pad2(m[3]);
+  var m2=s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/);if(m2)return m2[3]+'-'+_pad2(m2[2])+'-'+_pad2(m2[1]);
+  return'';
+}
+function _routeIdByName(name){
+  var nm=String(name||'').trim();if(!nm)return 0;
+  var r=S.routes.find(function(x){return String(x.name).trim()===nm;});
+  if(r)return r.id;
+  r=S.routes.find(function(x){return String(x.name).trim().toLowerCase()===nm.toLowerCase();});
+  return r?r.id:-1;
+}
+function _downloadBlob(buf,filename,mime){
+  var blob=new Blob([buf],{type:mime||'application/octet-stream'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+}
+function _loadExcelJS(cb){
+  if(window.ExcelJS){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+  s.onload=function(){cb();};
+  s.onerror=function(){showToast('تعذّر تحميل مكتبة الإكسيل — تأكد من الاتصال','error');};
+  document.head.appendChild(s);
+}
+
+// ════════════════ SHARED SEQUENTIAL BATCH ENGINE ════════════════════
+// rows: [{empCode,routeId,departDate,returnDate, returnRouteId?, departCostSectorId?, returnCostSectorId?}]
+function runBookingBatch(rows,title,onDone){
+  if(!rows||!rows.length){showToast('لا يوجد صفوف صالحة','error');return;}
+  var results=[],i=0,total=rows.length;
+  showModal(title||'⏳ جارٍ التنفيذ','<div id="bb-prog" style="text-align:center;padding:10px 4px"></div>','');
+  function paint(done,name){
+    var pct=Math.round(done/total*100);var el=document.getElementById('bb-prog');if(!el)return;
+    el.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px">'+(name?('جارٍ: '+name):'')+'</div>'+
+      '<div style="background:var(--bdr2);border-radius:99px;height:14px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--R),var(--R2));transition:width .2s"></div></div>'+
+      '<div style="font-size:12px;color:var(--txt3);margin-top:8px">'+done+' / '+total+'</div>';
+  }
+  paint(0,(gEmp(rows[0].empCode).name||rows[0].empCode));
+  function next(){
+    if(i>=total){onDone(results);return;}
+    var row=rows[i],em=gEmp(row.empCode);
+    paint(i,(em.name||row.empCode));
+    google.script.run.withSuccessHandler(function(r){
+      if(r&&r.success){
+        results.push({code:row.empCode,name:(em.name||row.empCode),ok:true,ref:r.ref,id:r.id,routeId:row.routeId,returnRouteId:(row.returnRouteId||0),departDate:row.departDate,returnDate:row.returnDate});
+        applyExtras(r.id,row);
+      }else{results.push({code:row.empCode,name:(em.name||row.empCode),ok:false,msg:((r&&r.message)||'فشل')});i++;next();}
+    }).withFailureHandler(function(e){
+      results.push({code:row.empCode,name:(em.name||row.empCode),ok:false,msg:((e&&e.message)||'فشل الاتصال')});i++;next();
+    }).addBooking({empCode:row.empCode,routeId:row.routeId,departDate:row.departDate,returnDate:row.returnDate,submittedBy:(S.user?S.user.username:'admin')});
+    function applyExtras(bkId,row){
+      var tasks=[];
+      if(row.returnRouteId&&row.returnRouteId!==row.routeId)tasks.push(function(cb){google.script.run.withSuccessHandler(cb).withFailureHandler(cb).updateBookingReturnRoute(bkId,row.returnRouteId,'دفعة');});
+      if(row.departCostSectorId)tasks.push(function(cb){google.script.run.withSuccessHandler(cb).withFailureHandler(cb).updateBookingCostSector(bkId,'depart',row.departCostSectorId,'دفعة');});
+      if(row.returnCostSectorId)tasks.push(function(cb){google.script.run.withSuccessHandler(cb).withFailureHandler(cb).updateBookingCostSector(bkId,'return',row.returnCostSectorId,'دفعة');});
+      var t=0;(function rn(){if(t>=tasks.length){i++;next();return;}tasks[t++](rn);})();
+    }
+  }
+  next();
+}
+
+function showBatchResults(results){
+  var ok=results.filter(function(r){return r.ok;});
+  var fail=results.filter(function(r){return!r.ok;});
+  window._lastBatchOk=ok;
+  var okH=ok.map(function(r){return'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bdr2);font-size:12px"><span style="font-weight:700">'+r.name+'</span><span style="font-family:monospace;color:var(--green);font-size:11px">✓ '+r.ref+'</span></div>';}).join('');
+  var failH=fail.map(function(r){return'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bdr2);font-size:12px"><span style="font-weight:700">'+r.name+'</span><span style="color:#b91c1c;font-size:10.5px">✕ '+r.msg+'</span></div>';}).join('');
+  var ticketsBtn=ok.length?'<button class="btn btn-pu" onclick="showGroupedTickets(window._lastBatchOk)">🎫 تذاكر مجمعة</button>':'';
+  showModal('✅ نتيجة الدفعة',
+    '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:11px;padding:11px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--green)">'+ok.length+'</div><div style="font-size:11px;color:var(--green);font-weight:700">تم بنجاح</div></div>'+(fail.length?'<div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:11px;padding:11px;text-align:center"><div style="font-size:24px;font-weight:900;color:#b91c1c">'+fail.length+'</div><div style="font-size:11px;color:#b91c1c;font-weight:700">فشل</div></div>':'')+'</div>'+
+    (okH?'<div style="margin-bottom:'+(failH?'12px':'0')+'"><div style="font-size:11px;font-weight:800;color:var(--txt2);margin-bottom:5px">الحجوزات الناجحة</div><div style="background:var(--bg);border:1px solid var(--bdr);border-radius:10px;padding:8px 11px;max-height:200px;overflow-y:auto">'+okH+'</div></div>':'')+
+    (failH?'<div><div style="font-size:11px;font-weight:800;color:#b91c1c;margin-bottom:5px">المتعذّر حجزهم</div><div style="background:#fff;border:1px solid #fecaca;border-radius:10px;padding:8px 11px;max-height:160px;overflow-y:auto">'+failH+'</div></div>':''),
+    ticketsBtn+'<button class="btn btn-r" onclick="_closeBatch()">تم</button>');
+  _bulkRows=[];_bulkReady=[];_importRows=[];_importReady=[];
+}
+function _closeBatch(){
+  closeModal();
+  if(_batchContext==='emp'){_empLastBk=null;rfsh(function(){renderEmpForm();});}
+  else{rfsh(function(){if(S.page==='requests')renderPage('requests');});}
+}
+
+// ════════════════ GROUPED TICKETS (sharing) ════════════════════════
+function showGroupedTickets(list){
+  if(!list||!list.length){showToast('لا توجد تذاكر','error');return;}
+  var cardsH=list.map(function(b){
+    var em=gEmp(b.code),rt=gRt(b.routeId),sec=gSec(em.sectorId);
+    var retRt=(b.returnRouteId&&b.returnRouteId!==b.routeId)?gRt(b.returnRouteId):{};
+    return'<div class="bcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:flex-start"><div><div style="font-size:16px;font-weight:900;color:var(--R)">Cairo 3A Poultry</div><div style="font-size:9px;color:var(--txt3)">نظام إجازات الأسطول</div></div><span class="badge" style="background:#fef3c7;color:#d97706">⏳ معلق</span></div><div class="bcard-ref">'+b.ref+'</div>'+
+      [['الموظف',em.name||b.code],['القطاع',sec.name||''],['خط النزول',rt.name||''],['خط العودة',retRt.name||rt.name||''],['النزول',fmt(b.departDate)],['العودة',fmt(b.returnDate)],['المدة',dys(b.departDate,b.returnDate)+' يوم']].map(function(r){return'<div class="bcard-row"><span style="color:var(--txt3);font-weight:600">'+r[0]+'</span><b>'+(r[1]||'—')+'</b></div>';}).join('')+'</div>';
+  }).join('');
+  var shareTxt='📋 تذاكر إجازات — Cairo 3A Poultry ('+list.length+' تذكرة)\n\n'+list.map(function(b,idx){
+    var em=gEmp(b.code),rt=gRt(b.routeId);var retRt=(b.returnRouteId&&b.returnRouteId!==b.routeId)?gRt(b.returnRouteId):{};
+    return(idx+1)+'. '+(em.name||b.code)+'\n   رقم الحجز: '+b.ref+'\n   خط النزول: '+(rt.name||'')+'\n   خط العودة: '+(retRt.name||rt.name||'')+'\n   النزول: '+fmt(b.departDate)+' | العودة: '+fmt(b.returnDate)+' ('+dys(b.departDate,b.returnDate)+' يوم)';
+  }).join('\n\n');
+  window._groupedShareTxt=shareTxt;
+  var shareBtn=(navigator.share)?'<button class="btn btn-pu" onclick="_shareGrouped()">📤 مشاركة</button>':'';
+  showModal('🎫 تذاكر مجمعة ('+list.length+')',
+    '<div class="al al-g" style="margin-bottom:12px">✅ تم إنشاء '+list.length+' حجز — جاهزين للمشاركة</div><div id="grouped-cards">'+cardsH+'</div>',
+    '<button class="btn btn-wa" onclick="_waGrouped()">📲 واتساب</button><button class="btn btn-g" onclick="_copyGrouped()">📋 نسخ</button><button class="btn btn-pr" onclick="window.print()">🖨️ طباعة</button>'+shareBtn+'<button class="btn btn-r" onclick="closeModal()">إغلاق</button>',
+    true);
+}
+function _waGrouped(){window.open('https://wa.me/?text='+encodeURIComponent(window._groupedShareTxt||''),'_blank');}
+function _shareGrouped(){if(navigator.share)navigator.share({title:'تذاكر إجازات',text:(window._groupedShareTxt||'')}).catch(function(){});}
+function _copyGrouped(){var t=window._groupedShareTxt||'';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){showToast('✅ تم النسخ','success');},function(){_fallbackCopy(t);});}else _fallbackCopy(t);}
+function _fallbackCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showToast('✅ تم النسخ','success');}catch(e){showToast('انسخ يدوياً','error');}ta.remove();}
+
+// ════════════════ BULK BOOKING MODAL (admin + employee) ═════════════
+function showBulkBookMod(){
+  if(!canDo('requests','bulkbook')){showToast('🔒 لا تملك صلاحية الحجز المجمّع','error');return;}
+  _openBulkMod({lockSector:null,showCost:true,emp:false,title:'👥 حجز إجازات مجمّع'});
+}
+function showEmpBulkBookMod(){
+  var me=S.user?gEmp(S.user.empCode):{};
+  if(!me||!me.sectorId){showToast('تعذّر تحديد قطاعك','error');return;}
+  _openBulkMod({lockSector:me.sectorId,showCost:false,emp:true,title:'👥 حجز جماعي — قطاع '+(gSec(me.sectorId).name||'')});
+}
+function _openBulkMod(opts){
+  _bulkRows=[];_bulkSectorLock=(opts.lockSector!=null?opts.lockSector:null);_bulkShowCost=!!opts.showCost;_batchContext=opts.emp?'emp':'admin';
+  var rtOpts='<option value="">— اختر —</option>'+S.routes.map(function(r){return'<option value="'+r.id+'">'+r.name+'</option>';}).join('');
+  var csOpts='<option value="0">— الأساسي —</option>'+S.sectors.map(function(s){return'<option value="'+s.id+'">'+s.ico+' '+s.name+'</option>';}).join('');
+  var pickerFilter;
+  if(_bulkSectorLock!=null){
+    var ls=gSec(_bulkSectorLock);
+    pickerFilter='<div style="margin-bottom:9px"><span class="badge" style="background:'+(ls.bg||'#fff1f2')+';color:'+(ls.color||'#c8102e')+'">'+(ls.ico||'')+' قطاع: '+(ls.name||'')+'</span> <span style="font-size:10.5px;color:var(--txt3)">(تقدر تحجز لموظفي قطاعك فقط)</span></div>';
+  }else{
+    pickerFilter='<select id="bb-secf" onchange="filterBulkPicker()" class="flt" style="margin-bottom:9px;width:100%"><option value="">كل القطاعات</option>'+S.sectors.map(function(s){return'<option value="'+s.id+'">'+s.ico+' '+s.name+'</option>';}).join('')+'</select>';
+  }
+  var costBlock=_bulkShowCost?
+    ('<div style="background:#faf5ff;border:1.5px solid #e9d5ff;border-radius:12px;padding:12px;margin-bottom:12px">'+
+      '<div style="font-size:11px;font-weight:800;color:#7c3aed;margin-bottom:9px;text-transform:uppercase">🔀 قطاع تكلفة للدفعة (اختياري)</div>'+
+      '<div class="fgrid"><div class="fg"><label>📤 قطاع تكلفة النزول</label><select id="bb-cs-dep">'+csOpts+'</select></div><div class="fg"><label>📥 قطاع تكلفة العودة</label><select id="bb-cs-ret">'+csOpts+'</select></div></div>'+
+      '<div style="font-size:10.5px;color:var(--txt3);margin-top:7px">يُطبَّق على كل موظفي الدفعة. سيبه «الأساسي» لو مش عايز تحويل.</div></div>'):'';
+  var body=''+
+    '<div class="al al-b" style="margin-bottom:12px">👥 حجز إجازات لمجموعة موظفين دفعة واحدة — كل موظف بإعداداته القابلة للتعديل. سيظهر اسمك ('+(S.user?S.user.username:'')+') كمقدم الطلب.</div>'+
+    '<div style="background:var(--bg);border:1.5px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:12px">'+
+      '<div style="font-size:11px;font-weight:800;color:var(--txt2);margin-bottom:9px;text-transform:uppercase">⚙️ إعدادات افتراضية (تُملأ بها صفوف الموظفين الجدد)</div>'+
+      '<div class="fgrid"><div class="fg"><label>خط النزول الافتراضي</label><select id="bb-def-rt">'+rtOpts+'</select></div><div class="fg"><label>تاريخ النزول</label><input type="date" id="bb-def-dep" min="'+tod()+'"/></div><div class="fg"><label>تاريخ العودة</label><input type="date" id="bb-def-ret"/></div></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center"><button class="btn btn-g btn-sm" onclick="applyBulkDefaults()">↧ تطبيق الافتراضي على كل الصفوف</button><span style="font-size:11px;color:var(--txt3)">💡 تقدر تعدّل أي صف لوحده بعد الإضافة</span></div>'+
+    '</div>'+
+    costBlock+
+    '<div style="border:1.5px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:12px">'+
+      pickerFilter+
+      '<input id="bb-search" placeholder="🔍 ابحث باسم أو كود..." oninput="filterBulkPicker()" style="width:100%;background:var(--bg);border:1.5px solid var(--bdr);border-radius:9px;padding:7px 12px;font-size:12px;font-family:inherit;outline:none;margin-bottom:9px"/>'+
+      '<div id="bb-picker" style="max-height:190px;overflow-y:auto;border:1px solid var(--bdr2);border-radius:9px;padding:4px"></div>'+
+      '<div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap"><button class="btn btn-g btn-sm" onclick="toggleAllPicker()">✓ تحديد/مسح المعروض</button><button class="btn btn-r btn-sm" onclick="addBulkSelected()">➕ أضف المحددين للقائمة</button></div>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px"><div style="font-size:13px;font-weight:800;color:var(--txt)">📝 الموظفون في الدفعة</div><div id="bb-summary" style="font-size:11.5px;font-weight:700"></div></div>'+
+    '<div id="bb-rows"></div>';
+  var footer='<button class="btn btn-g" onclick="closeModal()">إلغاء</button><button class="btn btn-r" onclick="reviewBulkBook()">✅ مراجعة وتأكيد</button>';
+  showModal(opts.title||'👥 حجز إجازات مجمّع',body,footer,true);
+  filterBulkPicker();renderBulkRows();
+}
+
+function filterBulkPicker(){
+  var q=((document.getElementById('bb-search')||{}).value||'').toLowerCase();
+  var sec=(_bulkSectorLock!=null)?_bulkSectorLock:((document.getElementById('bb-secf')||{}).value||'');
+  var added={};_bulkRows.forEach(function(r){added[r.empCode]=1;});
+  var list=S.employees.filter(function(e){
+    if(added[e.code])return false;
+    if(sec&&e.sectorId!=sec)return false;
+    if(q){var s=gSec(e.sectorId);var t=(e.code+' '+(e.name||'')+' '+(s.name||'')).toLowerCase();if(t.indexOf(q)<0)return false;}
+    return true;
+  });
+  var el=document.getElementById('bb-picker');if(!el)return;
+  if(!list.length){el.innerHTML='<div style="padding:14px;text-align:center;color:var(--txt3);font-size:12px">لا يوجد موظفون مطابقون (أو تمت إضافتهم بالفعل)</div>';return;}
+  el.innerHTML=list.map(function(e){var s=gSec(e.sectorId);
+    return'<label style="display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:7px;cursor:pointer">'+
+      '<input type="checkbox" class="bb-pick" value="'+e.code+'" style="width:16px;height:16px;accent-color:var(--R)"/>'+
+      '<span style="width:30px;height:30px;border-radius:8px;background:'+(s.bg||'#fff1f2')+';color:'+(s.color||'#c8102e')+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">'+((e.name||'؟').charAt(0))+'</span>'+
+      '<span style="flex:1"><span style="font-weight:700;font-size:12.5px">'+(e.name||e.code)+'</span><span style="font-size:10px;color:var(--txt3);display:block">'+e.code+(s.name?' • '+s.name:'')+'</span></span>'+
+    '</label>';
+  }).join('');
+}
+function toggleAllPicker(){var boxes=document.querySelectorAll('#bb-picker .bb-pick');if(!boxes.length)return;var anyUnchecked=false;boxes.forEach(function(b){if(!b.checked)anyUnchecked=true;});boxes.forEach(function(b){b.checked=anyUnchecked;});}
+function addBulkSelected(){
+  var boxes=document.querySelectorAll('#bb-picker .bb-pick:checked');
+  if(!boxes.length){showToast('اختر موظفين أولاً','error');return;}
+  var defRt=+((document.getElementById('bb-def-rt')||{}).value||0);
+  var defDep=(document.getElementById('bb-def-dep')||{}).value||'';
+  var defRet=(document.getElementById('bb-def-ret')||{}).value||'';
+  var added={};_bulkRows.forEach(function(r){added[r.empCode]=1;});
+  boxes.forEach(function(b){if(added[b.value])return;_bulkRows.push({empCode:b.value,routeId:defRt,departDate:defDep,returnDate:defRet});});
+  filterBulkPicker();renderBulkRows();
+}
+function bulkRowIssue(row){
+  if(!row.routeId)return'بدون خط';
+  if(!row.departDate||!row.returnDate)return'تواريخ ناقصة';
+  if(new Date(row.returnDate+'T00:00:00')<new Date(row.departDate+'T00:00:00'))return'العودة قبل النزول';
+  var ov=S.bookings.find(function(b){if(String(b.empCode)!==String(row.empCode)||b.status==='rejected')return false;return!(row.returnDate<b.departDate||row.departDate>b.returnDate);});
+  if(ov)return'تداخل مع '+ov.ref;
+  return'';
+}
+function renderBulkRows(){
+  var el=document.getElementById('bb-rows');if(!el)return;
+  if(!_bulkRows.length){el.innerHTML='<div style="padding:18px;text-align:center;color:var(--txt3);font-size:12px;border:1.5px dashed var(--bdr);border-radius:11px">لم تتم إضافة موظفين بعد — استخدم القائمة بالأعلى</div>';updateBulkSummary();return;}
+  el.innerHTML=_bulkRows.map(function(row,i){
+    var em=gEmp(row.empCode),s=gSec(em.sectorId),issue=bulkRowIssue(row);
+    var rtSel='<select onchange="updBulkRow('+i+',\'routeId\',this.value)" style="font-size:11.5px;padding:5px 7px"><option value="">— خط —</option>'+S.routes.map(function(r){return'<option value="'+r.id+'"'+(+row.routeId===r.id?' selected':'')+'>'+r.name+'</option>';}).join('')+'</select>';
+    return'<div style="border:1.5px solid '+(issue?'#fecaca':'var(--bdr)')+';background:'+(issue?'#fef2f2':'var(--card)')+';border-radius:11px;padding:9px 11px;margin-bottom:8px">'+
+      '<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px"><span style="width:30px;height:30px;border-radius:8px;background:'+(s.bg||'#fff1f2')+';color:'+(s.color||'#c8102e')+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">'+((em.name||'؟').charAt(0))+'</span><div style="flex:1"><div style="font-weight:800;font-size:12.5px">'+(em.name||row.empCode)+'</div><div style="font-size:10px;color:var(--txt3)">'+row.empCode+(s.name?' • '+s.name:'')+'</div></div>'+(issue?'<span class="badge" style="background:#fee2e2;color:#b91c1c;font-size:9.5px">⚠ '+issue+'</span>':'<span class="badge b-g" style="font-size:9.5px">✓ جاهز</span>')+'<button class="btn btn-no btn-sm btn-ico" onclick="removeBulkRow('+i+')" title="حذف">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:7px">'+rtSel+'<input type="date" value="'+(row.departDate||'')+'" min="'+tod()+'" onchange="updBulkRow('+i+',\'departDate\',this.value)" style="font-size:11.5px;padding:5px 7px"/><input type="date" value="'+(row.returnDate||'')+'" onchange="updBulkRow('+i+',\'returnDate\',this.value)" style="font-size:11.5px;padding:5px 7px"/></div>'+
+    '</div>';
+  }).join('');
+  updateBulkSummary();
+}
+function updBulkRow(i,field,val){if(!_bulkRows[i])return;_bulkRows[i][field]=(field==='routeId'?(+val||0):val);renderBulkRows();}
+function removeBulkRow(i){_bulkRows.splice(i,1);renderBulkRows();filterBulkPicker();}
+function applyBulkDefaults(){
+  var defRt=+((document.getElementById('bb-def-rt')||{}).value||0);
+  var defDep=(document.getElementById('bb-def-dep')||{}).value||'';
+  var defRet=(document.getElementById('bb-def-ret')||{}).value||'';
+  if(!_bulkRows.length){showToast('أضف موظفين أولاً','error');return;}
+  _bulkRows.forEach(function(r){if(defRt)r.routeId=defRt;if(defDep)r.departDate=defDep;if(defRet)r.returnDate=defRet;});
+  renderBulkRows();
+}
+function updateBulkSummary(){var el=document.getElementById('bb-summary');if(!el)return;var ready=0,bad=0;_bulkRows.forEach(function(r){if(bulkRowIssue(r))bad++;else ready++;});el.innerHTML='<span style="color:var(--green)">✓ جاهز: '+ready+'</span> &nbsp;|&nbsp; <span style="color:#b91c1c">⚠ مستبعد: '+bad+'</span>';}
+function reviewBulkBook(){
+  var ready=_bulkRows.filter(function(r){return!bulkRowIssue(r);});
+  var bad=_bulkRows.filter(function(r){return bulkRowIssue(r);});
+  if(!ready.length){showToast('لا يوجد صفوف جاهزة للحجز','error');return;}
+  var csDep=+((document.getElementById('bb-cs-dep')||{}).value||0);
+  var csRet=+((document.getElementById('bb-cs-ret')||{}).value||0);
+  _bulkReady=ready.map(function(r){return{empCode:r.empCode,routeId:r.routeId,departDate:r.departDate,returnDate:r.returnDate,departCostSectorId:csDep,returnCostSectorId:csRet};});
+  var listH=ready.map(function(r){var em=gEmp(r.empCode),rt=gRt(r.routeId);return'<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bdr2);font-size:12px"><span style="font-weight:700;flex:1">'+(em.name||r.empCode)+'</span><span style="font-size:11px;color:var(--txt3)">'+(rt.name||'')+'</span><span style="font-size:11px;white-space:nowrap">'+fmt(r.departDate)+' ← '+fmt(r.returnDate)+'</span><span style="font-weight:700;color:var(--R);font-size:11px">'+dys(r.departDate,r.returnDate)+'ي</span></div>';}).join('');
+  var csName=function(id){var sc=gSec(id);return id?((sc.ico||'')+' '+(sc.name||'')):'الأساسي';};
+  var csInfo=(csDep||csRet)?'<div class="al al-y" style="margin:10px 0;font-size:11.5px">🔀 قطاع التكلفة — نزول: <b>'+csName(csDep)+'</b> | عودة: <b>'+csName(csRet)+'</b></div>':'';
+  var badInfo=bad.length?'<div class="al" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;margin-top:10px;font-size:11.5px">⚠ سيتم استبعاد '+bad.length+' موظف (تداخل/بيانات ناقصة).</div>':'';
+  showModal('🔎 مراجعة الحجز المجمّع',
+    '<div class="al al-g" style="font-weight:700;font-size:14px;margin-bottom:12px">سيتم إنشاء <b>'+ready.length+'</b> حجز</div>'+csInfo+'<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:11px;padding:10px 12px;max-height:260px;overflow-y:auto">'+listH+'</div>'+badInfo,
+    '<button class="btn btn-g" onclick="closeModal()">رجوع</button><button class="btn btn-ok" onclick="runBookingBatch(_bulkReady,\'⏳ جارٍ الحجز المجمّع\',showBatchResults)">✅ تأكيد وتنفيذ ('+ready.length+')</button>');
+}
+
+// ════════════════ EXCEL IMPORT ══════════════════════════════════════
+function dlBulkTemplate(){
+  _loadExcelJS(function(){
+    try{
+      var wb=new ExcelJS.Workbook();
+      var ws=wb.addWorksheet('طلبات الحجز',{views:[{rightToLeft:true}]});
+      var rt=wb.addWorksheet('Routes');rt.state='hidden';
+      var names=S.routes.map(function(r){return r.name;});
+      names.forEach(function(nm,idx){rt.getCell('A'+(idx+1)).value=nm;});
+      var n=names.length||1;
+      ws.columns=[{header:'كود الموظف',width:16},{header:'تاريخ النزول',width:16},{header:'خط النزول',width:26},{header:'تاريخ العودة',width:16},{header:'خط العودة',width:26}];
+      var hr=ws.getRow(1);hr.font={bold:true,color:{argb:'FFFFFFFF'},size:12};hr.alignment={horizontal:'center',vertical:'middle'};hr.height=22;
+      ['A1','B1','C1','D1','E1'].forEach(function(c){ws.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFC8102E'}};});
+      var ex=S.employees[0];var r0=(S.routes[0]?S.routes[0].name:'');
+      ws.addRow([(ex?ex.code:'E001'),'2025-07-01',r0,'2025-07-10',r0]);
+      for(var rr=2;rr<=201;rr++){
+        ws.getCell('C'+rr).dataValidation={type:'list',allowBlank:true,formulae:['Routes!$A$1:$A$'+n],showErrorMessage:true,errorStyle:'stop',errorTitle:'خط غير صحيح',error:'اختر اسم خط من القائمة المنسدلة'};
+        ws.getCell('E'+rr).dataValidation={type:'list',allowBlank:true,formulae:['Routes!$A$1:$A$'+n],showErrorMessage:true,errorStyle:'stop',errorTitle:'خط غير صحيح',error:'اختر اسم خط من القائمة المنسدلة'};
+        ws.getCell('B'+rr).numFmt='yyyy-mm-dd';ws.getCell('D'+rr).numFmt='yyyy-mm-dd';
+      }
+      wb.xlsx.writeBuffer().then(function(buf){_downloadBlob(buf,'نموذج_استيراد_الحجوزات.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');showToast('✅ تم تحميل النموذج','success');}).catch(function(){showToast('خطأ في إنشاء النموذج','error');});
+    }catch(e){showToast('خطأ في إنشاء النموذج','error');}
+  });
+}
+function showImportMod(){
+  if(!canDo('requests','import')){showToast('🔒 لا تملك صلاحية الاستيراد','error');return;}
+  _importRows=[];_importReady=[];_batchContext='admin';
+  showModal('📤 استيراد طلبات الحجز من إكسيل',
+    '<div class="al al-b" style="margin-bottom:12px">١) نزّل النموذج واملأه (خلية الخط فيها قائمة منسدلة بالخطوط لمنع التعيير). ٢) ارفعه هنا. ٣) راجع وأكّد.</div>'+
+    '<div style="margin-bottom:14px"><button class="btn btn-g btn-sm" onclick="dlBulkTemplate()">⬇️ تحميل نموذج إكسيل</button></div>'+
+    '<div style="border:2px dashed var(--bdr);border-radius:12px;padding:18px;text-align:center"><input type="file" id="imp-file" accept=".xlsx,.xls" onchange="handleImportFile(this)" style="display:none"/><button class="btn btn-r" onclick="document.getElementById(\'imp-file\').click()">📂 اختر ملف إكسيل</button><div id="imp-fname" style="font-size:11px;color:var(--txt3);margin-top:8px"></div></div>'+
+    '<div id="imp-preview" style="margin-top:14px"></div>',
+    '<button class="btn btn-g" onclick="closeModal()">إلغاء</button><button class="btn btn-ok" id="imp-confirm" onclick="doImportBook()" style="display:none">✅ تأكيد وتنفيذ</button>',
+    true);
+}
+function handleImportFile(input){
+  var file=input.files&&input.files[0];if(!file)return;
+  document.getElementById('imp-fname').textContent='📄 '+file.name;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=new Uint8Array(e.target.result);
+      var wb=XLSX.read(data,{type:'array',cellDates:true});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+      parseImportRows(rows);
+    }catch(err){showToast('تعذّر قراءة الملف','error');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function parseImportRows(rows){
+  if(!rows||rows.length<2){document.getElementById('imp-preview').innerHTML='<div class="al al-r">الملف فارغ أو لا يحتوي بيانات</div>';return;}
+  var head=rows[0].map(function(h){return String(h||'').trim();});
+  function colIdx(keys){for(var i=0;i<head.length;i++){for(var k=0;k<keys.length;k++){if(head[i].indexOf(keys[k])>-1)return i;}}return -1;}
+  var ci={code:colIdx(['كود','code','Code']),dep:colIdx(['تاريخ النزول','نزول','depart']),drt:colIdx(['خط النزول']),ret:colIdx(['تاريخ العودة','عودة']),rrt:colIdx(['خط العودة'])};
+  if(ci.code<0)ci.code=0;if(ci.dep<0)ci.dep=1;if(ci.drt<0)ci.drt=2;if(ci.ret<0)ci.ret=3;if(ci.rrt<0)ci.rrt=4;
+  _importRows=[];
+  var seen=[];
+  for(var i=1;i<rows.length;i++){
+    var row=rows[i];if(!row)continue;
+    var rawCode=String(row[ci.code]||'').trim();
+    if(!rawCode&&!row[ci.dep]&&!row[ci.drt])continue;
+    var rec={raw:i+1,empCode:rawCode,departDate:'',returnDate:'',routeId:0,returnRouteId:0,issue:''};
+    var em=S.employees.find(function(e){return String(e.code).trim()===rawCode||String(e.code).trim().toLowerCase()===rawCode.toLowerCase();});
+    if(!em||!em.code){rec.issue='كود غير موجود';_importRows.push(rec);continue;}
+    rec.empCode=em.code;
+    var dep=_normDate(row[ci.dep]),ret=_normDate(row[ci.ret]);
+    rec.departDate=dep;rec.returnDate=ret;
+    var drtId=_routeIdByName(row[ci.drt]);
+    var rrtId=_routeIdByName(row[ci.rrt]);
+    if(drtId===-1){rec.issue='خط نزول غير معروف';_importRows.push(rec);continue;}
+    if(drtId===0){rec.issue='خط النزول مطلوب';_importRows.push(rec);continue;}
+    rec.routeId=drtId;
+    if(rrtId===-1){rec.issue='خط عودة غير معروف';_importRows.push(rec);continue;}
+    rec.returnRouteId=(rrtId&&rrtId!==drtId?rrtId:0);
+    if(!dep||!ret){rec.issue='تواريخ غير صحيحة';_importRows.push(rec);continue;}
+    if(ret<dep){rec.issue='العودة قبل النزول';_importRows.push(rec);continue;}
+    var ov=S.bookings.find(function(b){if(String(b.empCode)!==String(em.code)||b.status==='rejected')return false;return!(ret<b.departDate||dep>b.returnDate);});
+    if(ov){rec.issue='تداخل مع '+ov.ref;_importRows.push(rec);continue;}
+    var ovIn=seen.find(function(x){if(x.empCode!==em.code)return false;return!(ret<x.departDate||dep>x.returnDate);});
+    if(ovIn){rec.issue='تداخل داخل الملف';_importRows.push(rec);continue;}
+    seen.push({empCode:em.code,departDate:dep,returnDate:ret});
+    _importRows.push(rec);
+  }
+  renderImportPreview();
+}
+function renderImportPreview(){
+  var ok=_importRows.filter(function(r){return!r.issue;});
+  var bad=_importRows.filter(function(r){return r.issue;});
+  _importReady=ok.map(function(r){return{empCode:r.empCode,routeId:r.routeId,returnRouteId:r.returnRouteId,departDate:r.departDate,returnDate:r.returnDate};});
+  var rowsH=_importRows.map(function(r){
+    var em=gEmp(r.empCode),rt=gRt(r.routeId);
+    return'<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--bdr2);font-size:11.5px;background:'+(r.issue?'#fef2f2':'#fff')+'">'+
+      '<span style="color:var(--txt3);min-width:26px">#'+r.raw+'</span>'+
+      '<span style="font-weight:700;flex:1">'+(em.name||r.empCode||'—')+'</span>'+
+      '<span style="color:var(--txt3);font-size:10.5px">'+(rt.name||'')+'</span>'+
+      '<span style="font-size:10.5px;white-space:nowrap">'+(r.departDate?fmt(r.departDate):'—')+' ← '+(r.returnDate?fmt(r.returnDate):'—')+'</span>'+
+      (r.issue?'<span class="badge" style="background:#fee2e2;color:#b91c1c;font-size:9px">⚠ '+r.issue+'</span>':'<span class="badge b-g" style="font-size:9px">✓</span>')+
+    '</div>';
+  }).join('');
+  document.getElementById('imp-preview').innerHTML=
+    '<div style="display:flex;gap:8px;margin-bottom:10px"><span class="badge b-g">✓ صالح: '+ok.length+'</span><span class="badge" style="background:#fee2e2;color:#b91c1c">⚠ مستبعد: '+bad.length+'</span></div>'+
+    '<div style="border:1px solid var(--bdr);border-radius:10px;max-height:240px;overflow-y:auto">'+(rowsH||'<div style="padding:14px;text-align:center;color:var(--txt3)">لا توجد صفوف</div>')+'</div>';
+  var cf=document.getElementById('imp-confirm');if(cf){cf.style.display=ok.length?'':'none';if(ok.length)cf.textContent='✅ تأكيد وتنفيذ ('+ok.length+')';}
+}
+function doImportBook(){
+  if(!_importReady.length){showToast('لا توجد صفوف صالحة','error');return;}
+  _batchContext='admin';
+  runBookingBatch(_importReady,'⏳ جارٍ استيراد الحجوزات',showBatchResults);
+}
+
 function showCostSectorMod(bkId){
   var b=S.bookings.find(function(x){return x.id===+bkId;});if(!b)return;
   var em=gEmp(b.empCode),homeSec=gSec(em.sectorId);
