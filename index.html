@@ -23,8 +23,7 @@
 
   // ─── الإعدادات: عدّل السطرين دول ───────────────────────────────────
   var SUPABASE_URL = 'https://qswakmnhxcstcyyycvom.supabase.co';
-    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzd2FrbW5oeGNzdGN5eXljdm9tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NDExNDMsImV4cCI6MjA5NjUxNzE0M30.tNZzdy0J_i8vngm517ud7ul2HNGa8dzkkV7iZv8qhSk'; // anon / public key فقط — ليس service_role
-
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzd2FrbW5oeGNzdGN5eXljdm9tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NDExNDMsImV4cCI6MjA5NjUxNzE0M30.tNZzdy0J_i8vngm517ud7ul2HNGa8dzkkV7iZv8qhSk'; // anon / public key فقط — ليس service_role
   // ──────────────────────────────────────────────────────────────────
 
   // ════════════════ طبقة الاتصال بـ Supabase REST (async) ════════════
@@ -1703,7 +1702,7 @@ function showUMod(uname){
         '<select id="uf-e">'+eOpts+'</select>'+
       '</div>'+
     '</div>'+
-    '<label style="display:flex;align-items:center;gap:9px;cursor:pointer;background:#faf5ff;border:1.5px solid #e9d5ff;border-radius:11px;padding:11px 13px;margin-top:12px;font-weight:700;font-size:13px"><input type="checkbox" id="uf-bulk" '+((u.permissions&&u.permissions.canBulkBook)?'checked':'')+' style="width:18px;height:18px;accent-color:var(--R)"> 👥 السماح بالحجز الجماعي <span style="font-size:10.5px;color:var(--txt3);font-weight:600">(للموظف في بورتاله / للإداري في اللوحة)</span></label>'+'<div id="user-perms-wrap" style="display:none;border-top:1px solid var(--bdr);margin-top:12px;padding-top:12px">'+buildPermsUI(u.permissions)+'</div>',
+    '<label style="display:flex;align-items:center;gap:9px;cursor:pointer;background:#faf5ff;border:1.5px solid #e9d5ff;border-radius:11px;padding:11px 13px;margin-top:12px;font-weight:700;font-size:13px"><input type="checkbox" id="uf-bulk" '+((u.permissions&&u.permissions.canBulkBook)?'checked':'')+' style="width:18px;height:18px;accent-color:var(--R)"> 👥 السماح بالحجز الجماعي والاستيراد <span style="font-size:10.5px;color:var(--txt3);font-weight:600">(للموظف في بورتاله / للإداري في اللوحة)</span></label>'+'<div id="user-perms-wrap" style="display:none;border-top:1px solid var(--bdr);margin-top:12px;padding-top:12px">'+buildPermsUI(u.permissions)+'</div>',
     '<button class="btn btn-g" onclick="closeModal()">إلغاء</button><button class="btn btn-r" onclick="saveU(\''+(uname||'')+'\')">💾 حفظ</button>'
   );
   toggleUserPerms();
@@ -2202,7 +2201,7 @@ function renderEmpForm(){var c=document.getElementById('emp-cc');if(!c)return;if
 var code=S.user?S.user.empCode||'':'';var today=tod();var activeBk=S.bookings.find(function(b){return String(b.empCode)===String(code)&&b.status==='approved'&&b.returnDate>=today;});var activeHtml='';
 if(activeBk){var aRt=gRt(activeBk.routeId);var aRetRt=activeBk.returnRouteId&&activeBk.returnRouteId!==activeBk.routeId?gRt(activeBk.returnRouteId):{};activeHtml='<div style="margin-bottom:16px"><div class="al al-g" style="margin-bottom:10px">✅ لديك إجازة سارية حالياً</div><div style="background:var(--bg);border:1.5px solid var(--bdr);border-radius:12px;padding:13px">'+[['رقم الحجز','<span style="font-family:monospace;color:var(--R);font-weight:800">'+activeBk.ref+'</span>'],['خط النزول',aRt.name||''],['خط العودة',aRetRt.name?'<span class="badge b-rt-change">↩ '+aRetRt.name+'</span>':aRt.name||''],['تاريخ النزول',fmt(activeBk.departDate)],['تاريخ العودة',fmt(activeBk.returnDate)],['مدة الغياب',dys(activeBk.departDate,activeBk.returnDate)+' يوم']].map(function(r){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bdr2);font-size:12.5px"><span style="color:var(--txt3);font-weight:600">'+r[0]+'</span><b>'+r[1]+'</b></div>';}).join('')+'<div style="margin-top:12px"><button class="btn btn-am btn-sm" onclick="showExtendMod('+activeBk.id+',\''+activeBk.returnDate+'\')">📅 مد مدة الإجازة</button></div></div></div>';}
 if(S._bookingClosed){c.innerHTML=activeHtml+'<div class="al al-r">🔒 نظام تسجيل الطلبات مغلق حالياً<br>وقت القبول: '+S._bookingFrom+' حتى '+S._bookingTo+'</div><div style="font-size:12.5px;color:var(--txt2);text-align:center;padding:20px">'+S._bookingMsg+'</div>';return;}
-c.innerHTML=activeHtml+(canBulk()?'<button class="btn btn-pu btn-full" style="margin-bottom:14px" onclick="showEmpBulkBookMod()">👥 حجز جماعي (لموظفي قطاعك)</button>':'')+'<div class="slbl">بيانات الموظف</div><div style="display:flex;gap:8px;margin-bottom:12px"><div class="fg" style="flex:1"><label>كود الموظف</label><input id="ec" value="'+code+'" placeholder="أدخل الكود" style="font-family:monospace;font-weight:800;font-size:15px;letter-spacing:2px" onkeydown="if(event.key===\'Enter\')lookupEmp()"/></div><div style="display:flex;align-items:flex-end"><button class="btn btn-r" style="padding:10px 16px" onclick="lookupEmp()">🔍 بحث</button></div></div><div id="emp-err" style="display:none" class="al al-r"></div><div id="emp-info" style="display:none"></div>';if(code)setTimeout(lookupEmp,200);}
+c.innerHTML=activeHtml+(canBulk()?'<div style="display:flex;gap:8px;margin-bottom:14px"><button class="btn btn-pu" style="flex:1" onclick="showEmpBulkBookMod()">👥 حجز جماعي</button><button class="btn btn-am" style="flex:1" onclick="showImportMod(true)">📤 استيراد إكسيل</button></div>':'')+'<div class="slbl">بيانات الموظف</div><div style="display:flex;gap:8px;margin-bottom:12px"><div class="fg" style="flex:1"><label>كود الموظف</label><input id="ec" value="'+code+'" placeholder="أدخل الكود" style="font-family:monospace;font-weight:800;font-size:15px;letter-spacing:2px" onkeydown="if(event.key===\'Enter\')lookupEmp()"/></div><div style="display:flex;align-items:flex-end"><button class="btn btn-r" style="padding:10px 16px" onclick="lookupEmp()">🔍 بحث</button></div></div><div id="emp-err" style="display:none" class="al al-r"></div><div id="emp-info" style="display:none"></div>';if(code)setTimeout(lookupEmp,200);}
 function lookupEmp(){var rawInput=(document.getElementById('ec').value||'').trim();var em=S.employees.find(function(e){return String(e.code)===rawInput;});if(!em)em=S.employees.find(function(e){return String(e.code)===rawInput.toUpperCase();});if(!em)em=S.employees.find(function(e){return String(e.code).toLowerCase()===rawInput.toLowerCase();});var errEl=document.getElementById('emp-err'),infoEl=document.getElementById('emp-info');if(!em||!em.code){errEl.innerHTML='⚠ الكود غير موجود في قاعدة البيانات';errEl.style.display='flex';infoEl.style.display='none';return;}errEl.style.display='none';var code=em.code;var sec=gSec(em.sectorId);var canChoose=!!em.canChooseSector;var secSelOpts='<option value="0">— قطاعه الأساسي ('+(sec.name||'')+') —</option>'+S.sectors.map(function(s){return'<option value="'+s.id+'">'+s.ico+' '+s.name+'</option>';}).join('');var rtSelOpts='<option value="">— نفس خط النزول —</option>'+S.routes.map(function(r){return'<option value="'+r.id+'">'+r.name+'</option>';}).join('');var extraFields=canChoose?'<div class="fg"><label>📤 قطاع تكلفة النزول</label><select id="ecsdep" onchange="chkValid()">'+secSelOpts+'</select></div><div class="fg full" style="border-top:1px solid var(--bdr);padding-top:11px;margin-top:2px"><div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;margin-bottom:2px">↩ بيانات العودة (اختياري)</div></div><div class="fg"><label>خط العودة</label><select id="ecrt" onchange="chkValid()">'+rtSelOpts+'</select></div><div class="fg"><label>📥 قطاع تكلفة العودة</label><select id="ecsret" onchange="chkValid()">'+secSelOpts+'</select></div>':'';infoEl.innerHTML='<div class="info-grid"><div class="ir"><div class="il">الاسم</div><div class="iv">'+em.name+'</div></div><div class="ir"><div class="il">الوظيفة</div><div class="iv">'+em.job+'</div></div><div class="ir"><div class="il">القطاع</div><div class="iv"><span class="badge" style="background:'+sec.bg+';color:'+sec.color+'">'+sec.ico+' '+sec.name+'</span></div></div><div class="ir"><div class="il">القسم</div><div class="iv">'+em.dept+'</div></div></div><div class="divider"></div><div class="slbl">تفاصيل طلب الإجازة</div>'+(canChoose?'<div class="al al-pu" style="margin-bottom:10px">⭐ لديك صلاحية اختيار خط وقطاع منفصل لكل اتجاه</div>':'')+'<div class="fgrid"><div class="fg"><label>تاريخ النزول</label><input type="date" id="ed" min="'+tod()+'" onchange="clearRet();chkValid()"/></div><div class="fg"><label>تاريخ العودة</label><input type="date" id="er" onchange="chkValid()"/></div><div class="fg full"><label>خط '+(canChoose?'النزول':'السير')+'</label><select id="ert" onchange="chkValid()"><option value="">— اختر خط السير —</option>'+S.routes.map(function(r){return'<option value="'+r.id+'">'+r.name+'</option>';}).join('')+'</select></div>'+extraFields+'</div><div id="esm" style="display:none" class="al al-g"></div><input type="hidden" id="emp-resolved-code" value="'+code+'"/><button class="btn btn-r btn-full" id="esb" disabled onclick="submitEmpBk()">أكمل البيانات المطلوبة</button>';infoEl.style.display='';}
 function clearRet(){var r=document.getElementById('er'),d=document.getElementById('ed');if(r&&d){r.min=d.value;r.value='';}}
 function chkValid(){var d=(document.getElementById('ed')||{}).value,r=(document.getElementById('er')||{}).value,rt=(document.getElementById('ert')||{}).value;var ok=d&&r&&rt&&new Date(r+'T00:00:00')>=new Date(d+'T00:00:00');var btn=document.getElementById('esb');if(btn){btn.disabled=!ok;btn.textContent=ok?'✅ تقديم طلب الإجازة':'أكمل البيانات المطلوبة';}var sm=document.getElementById('esm');if(sm&&ok){var retRtEl=document.getElementById('ecrt');var retRtId=retRtEl?(+retRtEl.value||0):0;var retTxt=(retRtId&&retRtId!==(+rt))?(' · ↩ عودة: <b>'+gRt(retRtId).name+'</b>'):'';sm.innerHTML='📍 '+gRt(+rt).name+retTxt+' · مدة الغياب: <b>'+dys(d,r)+' يوم</b>';sm.style.display='flex';}else if(sm)sm.style.display='none';}
@@ -2586,6 +2585,7 @@ var _bulkShowCost=true;      // show batch cost-sector section
 var _batchContext='admin';   // 'admin' | 'emp' — controls post-finish refresh
 var _importRows=[];
 var _importReady=[];
+var _importSectorLock=null;  // null = admin (any) | sectorId = employee mode
 
 // ── small helpers ───────────────────────────────────────────────────
 function _pad2(x){x=String(x);return x.length<2?'0'+x:x;}
@@ -2851,11 +2851,20 @@ function dlBulkTemplate(){
     }catch(e){showToast('خطأ في إنشاء النموذج','error');}
   });
 }
-function showImportMod(){
-  if(!canDo('requests','import')){showToast('🔒 لا تملك صلاحية الاستيراد','error');return;}
-  _importRows=[];_importReady=[];_batchContext='admin';
+function showImportMod(empMode){
+  if(empMode){
+    if(!canBulk()){showToast('🔒 لا تملك صلاحية الاستيراد','error');return;}
+    var me=S.user?gEmp(S.user.empCode):{};
+    if(!me||!me.sectorId){showToast('تعذّر تحديد قطاعك','error');return;}
+    _importSectorLock=me.sectorId;_batchContext='emp';
+  }else{
+    if(!canDo('requests','import')){showToast('🔒 لا تملك صلاحية الاستيراد','error');return;}
+    _importSectorLock=null;_batchContext='admin';
+  }
+  _importRows=[];_importReady=[];
+  var hint=(_importSectorLock!=null)?'<div class="al al-y" style="margin-bottom:10px;font-size:11.5px">⚠ سيُقبل فقط موظفو قطاعك ('+(gSec(_importSectorLock).name||'')+') — أي كود من قطاع آخر سيُستبعد.</div>':'';
   showModal('📤 استيراد طلبات الحجز من إكسيل',
-    '<div class="al al-b" style="margin-bottom:12px">١) نزّل النموذج واملأه (خلية الخط فيها قائمة منسدلة بالخطوط لمنع التعيير). ٢) ارفعه هنا. ٣) راجع وأكّد.</div>'+
+    hint+'<div class="al al-b" style="margin-bottom:12px">١) نزّل النموذج واملأه (خلية الخط فيها قائمة منسدلة بالخطوط لمنع التعيير). ٢) ارفعه هنا. ٣) راجع وأكّد.</div>'+
     '<div style="margin-bottom:14px"><button class="btn btn-g btn-sm" onclick="dlBulkTemplate()">⬇️ تحميل نموذج إكسيل</button></div>'+
     '<div style="border:2px dashed var(--bdr);border-radius:12px;padding:18px;text-align:center"><input type="file" id="imp-file" accept=".xlsx,.xls" onchange="handleImportFile(this)" style="display:none"/><button class="btn btn-r" onclick="document.getElementById(\'imp-file\').click()">📂 اختر ملف إكسيل</button><div id="imp-fname" style="font-size:11px;color:var(--txt3);margin-top:8px"></div></div>'+
     '<div id="imp-preview" style="margin-top:14px"></div>',
@@ -2893,6 +2902,7 @@ function parseImportRows(rows){
     var em=S.employees.find(function(e){return String(e.code).trim()===rawCode||String(e.code).trim().toLowerCase()===rawCode.toLowerCase();});
     if(!em||!em.code){rec.issue='كود غير موجود';_importRows.push(rec);continue;}
     rec.empCode=em.code;
+    if(_importSectorLock!=null&&String(em.sectorId)!==String(_importSectorLock)){rec.issue='خارج قطاعك';_importRows.push(rec);continue;}
     var dep=_normDate(row[ci.dep]),ret=_normDate(row[ci.ret]);
     rec.departDate=dep;rec.returnDate=ret;
     var drtId=_routeIdByName(row[ci.drt]);
