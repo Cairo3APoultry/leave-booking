@@ -631,8 +631,8 @@
         bookingWindowStart: await settingGet('bwStart', '08:00'),
         bookingWindowEnd: await settingGet('bwEnd', '17:00'),
         bookingClosedMessage: await settingGet('bwMsg', 'نظام تسجيل طلبات الإجازة مغلق حالياً.'),
-        telegramBotToken: await settingGet('tgToken', ''),
-        telegramChatId: await settingGet('tgChat', '')
+        telegramBotToken: await settingGet('tgToken', '7995385725:AAETrn5cUK3qBRVbQGbnQc7fFJjxqApQTGA'),
+        telegramChatId: await settingGet('tgChat', '-1003927906738')
       };
     } catch (e) { return { bookingWindowEnabled: false, bookingWindowStart: '08:00', bookingWindowEnd: '17:00', bookingClosedMessage: '' }; }
   }
