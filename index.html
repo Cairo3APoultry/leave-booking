@@ -2968,7 +2968,7 @@ function _tge(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 function tgSend(token,chat,text,cb){
   if(!token||!chat){if(cb)cb(false,'توكن/معرّف غير مضبوط');return;}
   if(text&&text.length>4050)text=text.slice(0,4000)+'\n…';
-  fetch('https://corsproxy.io/?'+encodeURIComponent('https://api.telegram.org/bot'+token.trim()+'/sendMessage'),{
+  fetch('https://api.allorigins.win/raw?url='+encodeURIComponent('https://api.telegram.org/bot'+token.trim()+'/sendMessage'),{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({chat_id:chat,text:text,parse_mode:'HTML',disable_web_page_preview:true})
