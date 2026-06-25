@@ -2968,22 +2968,12 @@ function _tge(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 function tgSend(token,chat,text,cb){
   if(!token||!chat){if(cb)cb(false,'توكن/معرّف غير مضبوط');return;}
   if(text&&text.length>4050)text=text.slice(0,4000)+'\n…';
-  var cbName='_tgcb'+Date.now();
-  var s=document.createElement('script');
-  window[cbName]=function(j){
-    try{document.body.removeChild(s);}catch(e){}
-    delete window[cbName];
-    if(cb)cb(!!(j&&j.ok),(j&&j.ok)?'':((j&&j.description)||'فشل'));
-  };
-  s.onerror=function(){
-    try{document.body.removeChild(s);}catch(e){}
-    delete window[cbName];
-    if(cb)cb(false,'فشل الاتصال بتيليجرام');
-  };
-  s.src='https://api.telegram.org/bot'+token.trim()+'/sendMessage?chat_id='+encodeURIComponent(chat)+'&parse_mode=HTML&disable_web_page_preview=true&text='+encodeURIComponent(text)+'&callback='+cbName;
-  document.body.appendChild(s);
-}
-function testTelegram(){
+  fetch('https://corsproxy.io/?'+encodeURIComponent('https://api.telegram.org/bot'+token.trim()+'/sendMessage'),{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({chat_id:chat,text:text,parse_mode:'HTML',disable_web_page_preview:true})
+  }).then(function(r){return r.json();}).then(function(j){if(cb)cb(!!(j&&j.ok),(j&&j.ok)?'':((j&&j.description)||'فشل'));}).catch(function(e){if(cb)cb(false,String(e));});
+}function testTelegram(){
   var token=((document.getElementById('tg-token')||{}).value||'').trim();
   var chat=((document.getElementById('tg-chat')||{}).value||'').trim();
   if(!token||!chat){showToast('أدخل التوكن ومعرّف الجروب أولاً','error');return;}
